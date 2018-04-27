@@ -312,10 +312,11 @@
        */
       getCenterPoint: function (centerPoint) {
         let _this = this
+        let c = {}
         // 没有传入centerPoint,默认初始化
         if (typeof centerPoint !== 'object') {
           // centerPoint对象，用于存储以往已经选择的点的信息
-          var centerPoint = {
+          c = {
             round: 1, // 第几圈
             choose: [], // 已选择的点
             nowChoose: null,
@@ -397,9 +398,11 @@
               this.revert = 1
             }
           }
+        } else {
+          c = centerPoint
         }
-        centerPoint.randPoint()
-        return centerPoint
+        c.randPoint()
+        return c
       },
       randomColor () {
         return '#' + ('00000' + (Math.random() * 0x1000000 << 0).toString(16)).slice(-6)
