@@ -2,136 +2,75 @@
   <v-container fluid>
     <v-slide-y-transition mode="out-in">
       <v-layout column align-center>
-        <canvas id="canvas" :width="canvasWidth" :height="canvasHeight" style="background-color: #000"></canvas>
+        <v-navigation-drawer
+          persistent
+          :mini-variant="miniVariant"
+          v-model="drawer"
+          enable-resize-watcher
+          fixed
+          right
+          app
+          width="500"
+        >
+          <v-form ref="form" class="px-2 py-4" lazy-validation>
+            <v-text-field label="宽度" v-model="canvasWidth" :counter="10" required></v-text-field>
+            <v-text-field label="高度" v-model="canvasHeight" required></v-text-field>
+            <v-slider label="缩放" :min="1" :max="10" v-model="zoom"></v-slider>
+            <v-tabs v-model="active" color="cyan" dark slider-color="yellow">
+              <v-tab ripple>手动导入</v-tab>
+              <v-tab ripple>Json导入</v-tab>
+              <v-tab-item>
+                <v-text-field label="文本" v-model="inputData.name" required></v-text-field>
+                <v-text-field label="字号" v-model="inputData.count" required></v-text-field>
+                <v-btn @click="add" color="info">添加</v-btn>
+                <v-btn @click="add" color="warning">撤销</v-btn>
+              </v-tab-item>
+              <v-tab-item>
+                <v-text-field :multi-line="true" label="Json" v-model="dataArrString" required></v-text-field>
+                <v-btn @click="mutilCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>
+              </v-tab-item>
+            </v-tabs>
+
+            <div class="btn-group">
+              <v-btn @click="create" color="info">重新渲染</v-btn>
+              <v-btn @click="" color="warning">清空画布</v-btn>
+              <v-btn @click="downloadFile('bg.jpeg')" color="success">保存图片</v-btn>
+            </div>
+          </v-form>
+        </v-navigation-drawer>
+        <canvas id="canvas" :width="canvasWidth" :height="canvasHeight" :style="{
+          backgroundColor: '#000',
+          transform: 'scale('+ zoom / 10 / ratio + ')',
+          }"></canvas>
+        <v-btn class="btn-setting" @click.stop="drawer=!drawer" fab dark small color="blue">
+          <v-icon dark>settings</v-icon>
+        </v-btn>
+
       </v-layout>
     </v-slide-y-transition>
   </v-container>
 </template>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-
 <script>
   export default {
     data () {
       return {
+        inputData: {
+          name: '',
+          count: 12
+        },
+        active: '0',
+        drawer: true,
+        clipped: false,
+        miniVariant: false,
+        zoom: 5,
         canvas: null,
         ctx: null, // 花边
-        canvasWidth: 1000,
-        canvasHeight: 500,
-        dataArr: [
-          {
-            name: '空间',
-            count: 30
-          },
-          {
-            name: '是胜多负少',
-            count: 20
-          },
-          {
-            name: '空刚刚间',
-            count: 1
-          },
-          {
-            name: '空的间',
-            count: 2
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: 'git branch -d hotfixes',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          },
-          {
-            name: '梵蒂冈间',
-            count: 3
-          }
-        ],
+        canvasWidth: 1920,
+        canvasHeight: 1080,
+        ratio: 1,
+        dataArr: [{'name': '打撒所多', 'count': 22}],
+        dataArrString: '',
         finImgData: null, // 最终图片
         finImgMsg: null, // 存放是否已写信息
         colorArr: [ // 颜色选择
@@ -165,13 +104,15 @@
     components: {},
     watch: {},
     created () {
+      this.ratio = window.devicePixelRatio || 1
+      this.canvasWidth = this.canvasWidth * this.ratio
+      this.canvasHeight = this.canvasHeight * this.ratio
     },
     mounted () {
-//      this.canvas = document.getElementById('canvas')
-//      this.ctx = this.canvas.getContext('2d')
-//      this.ctx.fillStyle = '#000'
-//      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-      this.ready(this.data2, 'canvas')
+//      let data = JSON.parse(this.dataArr)
+//      console.log(typeof data)
+//      console.log(data[0].name)
+      this.ready(this.dataArr)
     },
     methods: {
       ready: function () {
@@ -187,14 +128,13 @@
             this.finImgMsg[i][j] = 0
           }
         }
-        this.cavulateData()
-        // log(this.data)
+        this.setFontSize()
         this.draw()
       },
       /**
        * 计算标签大小
        */
-      cavulateData: function () {
+      setFontSize: function () {
         this.dataArr.sort(function (x, y) {
           if (Math.floor(x.count) === Math.floor(y.count)) {
             return 0
@@ -206,11 +146,11 @@
           }
         })
         this.dataArr.map((item, index) => {
-          if (item.count < 12) {
-            item.count = 12
+          item.count = item.count * this.ratio
+          if (item.count < 12 * this.ratio) {
+            item.count = 12 * this.ratio
           }
         })
-        console.table(this.dataArr)
       },
       /**
        * 开始画
@@ -222,6 +162,14 @@
         this.ctx.putImageData(this.finImgData, 0, 0)
       },
       /**
+       * 开始画
+       */
+//      drawOne: function () {
+//        let index = this.dataArr.length - 1
+//        this.drawWord(this.dataArr[index].name, this.dataArr[index].count)
+//        this.ctx.putImageData(this.finImgData, 0, 0)
+//      },
+      /**
        * 单一一个标签画
        */
       drawWord: function (word, size) {
@@ -232,7 +180,7 @@
         let w = this.ctx.measureText(word).width
         this.ctx.textBaseline = 'top'
         this.ctx.fillText(word, 0, 0)
-        let wordImgData = this.ctx.getImageData(0, 0, w, size + 10)
+        let wordImgData = this.ctx.getImageData(0, 0, w + 30, size + 30)
         wordImgData = this.randomRotateImgData(wordImgData)
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
         // 初始化查找点
@@ -404,9 +352,9 @@
         c.randPoint()
         return c
       },
-      randomColor () {
-        return '#' + ('00000' + (Math.random() * 0x1000000 << 0).toString(16)).slice(-6)
-      },
+//      randomColor () {
+//        return '#' + ('00000' + (Math.random() * 0x1000000 << 0).toString(16)).slice(-6)
+//      },
 
       random (num) {
         return Math.floor(Math.random() * (num + 1))
@@ -448,17 +396,65 @@
         }
         return false
       },
-
-      changeImg () {
-//        var containerDom = document.getElementById('img')
-//        containerDom.innerHTML = ''
-
-//        drawImg.ready(data2, 'img')
+      base64Img2Blob (code) {
+        let parts = code.split(';base64,')
+        let contentType = parts[0].split(':')[1]
+        let raw = window.atob(parts[1])
+        let rawLength = raw.length
+        let uInt8Array = new Uint8Array(rawLength)
+        for (let i = 0; i < rawLength; ++i) {
+          uInt8Array[i] = raw.charCodeAt(i)
+        }
+        return new Blob([uInt8Array], {type: contentType})
+      },
+      downloadFile (fileName) {
+        let aLink = document.createElement('a')
+        let blob = this.base64Img2Blob(this.canvas.toDataURL('image/jpeg')) // new Blob([content])
+        console.log(1)
+        let evt = document.createEvent('MouseEvents')
+        evt.initEvent('click', false, false)// initEvent 不加后两个参数在FF下会报错
+        aLink.download = fileName
+        aLink.href = URL.createObjectURL(blob)
+        aLink.dispatchEvent(evt)
+      },
+      /**
+       * 添加数据
+       */
+      add () {
+        this.dataArr.push(JSON.parse(JSON.stringify(this.inputData)))
+        this.ready(this.dataArr)
+      },
+      /**
+       * 生成背景图
+       */
+      create () {
+//        this.canvasWidth = this.canvasWidth * this.ratio
+//        this.canvasHeight = this.canvasHeight * this.ratio
+        this.ready(this.dataArr)
+      },
+      mutilCreate () {
+        this.dataArr = JSON.parse(this.dataArrString)
+        this.ready(this.dataArr)
       }
+
     }
   }
 </script>
 
 <style scoped>
+  .w-100 {
+    width: 100%;
+  }
 
+  .btn-setting {
+    position: fixed;
+    bottom: 5px;
+    right: 20px;
+    z-index: 999;
+  }
+
+  .btn-group {
+    position: absolute;
+    bottom: 0;
+  }
 </style>
