@@ -4,48 +4,59 @@
       <v-layout column align-center>
         <v-navigation-drawer
           persistent
-          :mini-variant="miniVariant"
+          :mini-letiant="miniVariant"
           v-model="drawer"
           enable-resize-watcher
           fixed
           right
           app
-          width="500"
+          width="400"
         >
           <v-form ref="form" class="px-2 py-4" lazy-validation>
-            <v-text-field label="宽度" v-model="canvasWidth" :counter="10" required></v-text-field>
-            <v-text-field label="高度" v-model="canvasHeight" required></v-text-field>
+            <v-text-field label="宽度" v-model="canvasWidth" type="number" required></v-text-field>
+            <v-text-field label="高度" v-model="canvasHeight" type="number" required></v-text-field>
             <v-slider label="缩放" :min="1" :max="10" v-model="zoom"></v-slider>
-            <v-tabs v-model="active" color="cyan" dark slider-color="yellow">
-              <v-tab ripple>手动导入</v-tab>
-              <v-tab ripple>Json导入</v-tab>
-              <v-tab-item>
-                <v-text-field label="文本" v-model="inputData.name" required></v-text-field>
-                <v-text-field label="字号" v-model="inputData.count" required></v-text-field>
-                <v-btn @click="add" color="info">添加</v-btn>
-                <v-btn @click="add" color="warning">撤销</v-btn>
-              </v-tab-item>
-              <v-tab-item>
-                <v-text-field :multi-line="true" label="Json" v-model="dataArrString" required></v-text-field>
-                <v-btn @click="mutilCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>
-              </v-tab-item>
-            </v-tabs>
+            <v-switch label="方向随机" v-model="isRandomDirection" color="success" value="success" hide-details></v-switch>
+            <!--<v-tabs v-model="active" color="cyan" dark slider-color="yellow">-->
+            <!--<v-tab ripple>手动导入</v-tab>-->
+            <!--<v-tab ripple>Json导入</v-tab>-->
+            <!--<v-tab-item>-->
+            <!--<v-text-field label="文本" v-model="inputData.name" required></v-text-field>-->
+            <!--<v-text-field label="字号" v-model="inputData.fontSize" required></v-text-field>-->
+            <!--<v-btn @click="add" color="info">添加</v-btn>-->
+            <!--<v-btn @click="backout" color="warning">撤销</v-btn>-->
+            <!--</v-tab-item>-->
+            <!--<v-tab-item>-->
+            <!--<v-text-field :multi-line="true" label="Json" v-model="dataArrString" required></v-text-field>-->
+            <!--<v-btn @click="multiCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>-->
+            <!--</v-tab-item>-->
+            <!--</v-tabs>-->
+            <v-text-field class="textarea" :multi-line="true" label="Json" v-model="dataArrString"
+                          :placeholder="JSON.stringify(this.dataArr)"
+                          required></v-text-field>
+            <v-btn @click="multiCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>
 
             <div class="btn-group">
               <v-btn @click="create" color="info">重新渲染</v-btn>
-              <v-btn @click="" color="warning">清空画布</v-btn>
+              <v-btn @click="clean" color="warning">清空画布</v-btn>
               <v-btn @click="downloadFile('bg.jpeg')" color="success">保存图片</v-btn>
             </div>
           </v-form>
         </v-navigation-drawer>
         <canvas id="canvas" :width="canvasWidth" :height="canvasHeight" :style="{
           backgroundColor: '#000',
-          transform: 'scale('+ zoom / 10 / ratio + ')',
+          transform: 'scale('+ zoom / 10 + ')',
           }"></canvas>
         <v-btn class="btn-setting" @click.stop="drawer=!drawer" fab dark small color="blue">
           <v-icon dark>settings</v-icon>
         </v-btn>
-
+        <v-snackbar
+          :top="true"
+          :timeout="2000"
+          color="error"
+          v-model="snackbar"
+        >Json格式有误，请参考示例
+        </v-snackbar>
       </v-layout>
     </v-slide-y-transition>
   </v-container>
@@ -57,7 +68,7 @@
       return {
         inputData: {
           name: '',
-          count: 12
+          fontSize: 12
         },
         active: '0',
         drawer: true,
@@ -65,11 +76,18 @@
         miniVariant: false,
         zoom: 5,
         canvas: null,
-        ctx: null, // 花边
+        ctx: null,
         canvasWidth: 1920,
         canvasHeight: 1080,
         ratio: 1,
-        dataArr: [{'name': '打撒所多', 'count': 22}],
+        snackbar: false,
+        isRandomDirection: false,
+        dataArr: [
+          {
+            'name': '下班打卡',
+            'fontSize': 40
+          }
+        ],
         dataArrString: '',
         finImgData: null, // 最终图片
         finImgMsg: null, // 存放是否已写信息
@@ -104,27 +122,22 @@
     components: {},
     watch: {},
     created () {
-      this.ratio = window.devicePixelRatio || 1
-      this.canvasWidth = this.canvasWidth * this.ratio
-      this.canvasHeight = this.canvasHeight * this.ratio
+//      this.ratio = window.devicePixelRatio || 1
+//      this.canvasWidth = this.canvasWidth * this.ratio
+//      this.canvasHeight = this.canvasHeight * this.ratio
     },
     mounted () {
-//      let data = JSON.parse(this.dataArr)
-//      console.log(typeof data)
-//      console.log(data[0].name)
       this.ready(this.dataArr)
     },
     methods: {
       ready: function () {
         this.canvas = document.getElementById('canvas')
-
         this.ctx = this.canvas.getContext('2d')
         this.finImgData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight)
         this.finImgMsg = []
-
-        for (var i = 0; i < this.canvasWidth; i++) {
+        for (let i = 0; i < this.canvasWidth; i++) {
           this.finImgMsg[i] = []
-          for (var j = 0; j < this.canvasHeight; j++) {
+          for (let j = 0; j < this.canvasHeight; j++) {
             this.finImgMsg[i][j] = 0
           }
         }
@@ -136,19 +149,19 @@
        */
       setFontSize: function () {
         this.dataArr.sort(function (x, y) {
-          if (Math.floor(x.count) === Math.floor(y.count)) {
+          if (Math.floor(x.fontSize) === Math.floor(y.fontSize)) {
             return 0
           }
-          if (Math.floor(x.count) > Math.floor(y.count)) {
+          if (Math.floor(x.fontSize) > Math.floor(y.fontSize)) {
             return -1
           } else {
             return 1
           }
         })
         this.dataArr.map((item, index) => {
-          item.count = item.count * this.ratio
-          if (item.count < 12 * this.ratio) {
-            item.count = 12 * this.ratio
+//          item.fontSize = item.fontSize * this.ratio
+          if (item.fontSize < 12) {
+            item.fontSize = 12
           }
         })
       },
@@ -156,19 +169,11 @@
        * 开始画
        */
       draw: function () {
-        for (var i = 0; i < this.dataArr.length; i++) {
-          this.drawWord(this.dataArr[i].name, this.dataArr[i].count)
+        for (let i = 0; i < this.dataArr.length; i++) {
+          this.drawWord(this.dataArr[i].name, this.dataArr[i].fontSize)
         }
         this.ctx.putImageData(this.finImgData, 0, 0)
       },
-      /**
-       * 开始画
-       */
-//      drawOne: function () {
-//        let index = this.dataArr.length - 1
-//        this.drawWord(this.dataArr[index].name, this.dataArr[index].count)
-//        this.ctx.putImageData(this.finImgData, 0, 0)
-//      },
       /**
        * 单一一个标签画
        */
@@ -181,7 +186,9 @@
         this.ctx.textBaseline = 'top'
         this.ctx.fillText(word, 0, 0)
         let wordImgData = this.ctx.getImageData(0, 0, w + 30, size + 30)
-        wordImgData = this.randomRotateImgData(wordImgData)
+        if (this.isRandomDirection) {
+          wordImgData = this.randomRotateImgData(wordImgData)
+        }
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
         // 初始化查找点
         let centerPoint = this.getCenterPoint()
@@ -191,14 +198,14 @@
           if (centerPoint.isFullRound()) {
             centerPoint.clearRound()
           }
-          var pos = centerPoint.getCenterPos(wordImgData.width, wordImgData.height)
+          let pos = centerPoint.getCenterPos(wordImgData.width, wordImgData.height)
           pos.x = this.canvasWidth / 2 + pos.x
           pos.y = this.canvasHeight / 2 + pos.y
 
           if (this.isAbleDraw(wordImgData, pos.x, pos.y)) {
             for (let i = 0; i < wordImgData.width; i++) {
-              for (var j = 0; j < wordImgData.height; j++) {
-                var point = this.getXY(wordImgData, i, j)
+              for (let j = 0; j < wordImgData.height; j++) {
+                let point = this.getXY(wordImgData, i, j)
                 if (point[3] !== 0) {
                   this.setXY(this.finImgData, pos.x + i, pos.y + j, point)
                   this.finImgMsg[pos.x + i - 1][pos.y + j - 1] = 1
@@ -216,16 +223,16 @@
        * 是否可以画
        */
       isAbleDraw: function (wordImg, x, y) {
-        var w = wordImg.width
-        var h = wordImg.height
+        let w = wordImg.width
+        let h = wordImg.height
 
-        for (var i = 0; i < w; i++) {
-          for (var j = 0; j < h; j++) {
-            var wordPoint = this.getXY(wordImg, i, j)
+        for (let i = 0; i < w; i++) {
+          for (let j = 0; j < h; j++) {
+            let wordPoint = this.getXY(wordImg, i, j)
             // 检测文字图片上该点是否有痕迹，不全为白为有痕迹
             if (wordPoint[3] !== 0) {
-              var finx = x + i - 1
-              var finy = y + j - 1
+              let finx = x + i - 1
+              let finy = y + j - 1
               if (finx < 0 || finx >= this.canvasWidth || finy < 0 || finy >= this.canvasHeight) {
                 return false
               }
@@ -241,16 +248,16 @@
        * 随机旋转
        */
       randomRotateImgData: function (imgData) {
-//        var newImageData = this.ctx.createImageData(imgData.height, imgData.width)
-//        if (this.random(9) > 6) {
-//          for (var i = 0; i < imgData.height; i++) {
-//            for (var j = 0; j < imgData.width; j++) {
-//              var point = this.getXY(imgData, j, i)
-//              this.setXY(newImageData, imgData.height - i - 1, j, point)
-//            }
-//          }
-//          imgData = newImageData
-//        }
+        let newImageData = this.ctx.createImageData(imgData.height, imgData.width)
+        if (this.random(9) > 6) {
+          for (let i = 0; i < imgData.height; i++) {
+            for (let j = 0; j < imgData.width; j++) {
+              let point = this.getXY(imgData, j, i)
+              this.setXY(newImageData, imgData.height - i - 1, j, point)
+            }
+          }
+          imgData = newImageData
+        }
 
         return imgData
       },
@@ -273,7 +280,7 @@
              * 随机选择点
              */
             randPoint: function () {
-              var chooseCount = this.round === 1 ? 1 : this.round * 2 + (this.round - 2) * 2 // 总共可以选择的点
+              let chooseCount = this.round === 1 ? 1 : this.round * 2 + (this.round - 2) * 2 // 总共可以选择的点
               // 所有情况已经遍历了，增加一环 ,重置
               if (this.choose.length === chooseCount) {
                 this.round++
@@ -293,10 +300,10 @@
               return this.nowChoose
             },
             getCenterPos: function (w, h) {
-              var shift = 0.5 // 偏移率
-              var shiftw = _this.random(1) ? _this.random(w * shift) : -_this.random(w * shift)
-              var shifth = _this.random(1) ? _this.random(h * shift) : -_this.random(h * shift)
-              var pos = {
+              let shift = 0.5 // 偏移率
+              let shiftw = _this.random(1) ? _this.random(w * shift) : -_this.random(w * shift)
+              let shifth = _this.random(1) ? _this.random(h * shift) : -_this.random(h * shift)
+              let pos = {
                 x: 0,
                 y: 0
               }
@@ -306,11 +313,9 @@
               }
 
               if (this.round !== 1) {
-                var quadrant = Math.floor((this.nowChoose) / (this.round - 1)) // 第几象限
-                var distance = (this.nowChoose + 1) % this.round// 象限的偏移
-
+                let quadrant = Math.floor((this.nowChoose) / (this.round - 1)) // 第几象限
+                let distance = (this.nowChoose + 1) % this.round// 象限的偏移
                 // log(quadrant)
-
                 switch (quadrant) {
                   case 0 :
                     pos.x = w / 2 * distance
@@ -338,7 +343,7 @@
             },
             isFullRound: function () {
               if (this.revert) return false
-              var chooseCount = this.round === 1 ? 1 : this.round * 2 + (this.round - 2) * 2 // 总共可以选择的点
+              let chooseCount = this.round === 1 ? 1 : this.round * 2 + (this.round - 2) * 2 // 总共可以选择的点
               return this.choose.length === chooseCount
             },
             clearRound: function () {
@@ -352,10 +357,6 @@
         c.randPoint()
         return c
       },
-//      randomColor () {
-//        return '#' + ('00000' + (Math.random() * 0x1000000 << 0).toString(16)).slice(-6)
-//      },
-
       random (num) {
         return Math.floor(Math.random() * (num + 1))
       },
@@ -363,10 +364,10 @@
        * imgData根据坐标获取
        */
       getXY (imgData, x, y) {
-        var res = []
-        var w = imgData.width
+        let res = []
+        let w = imgData.width
 
-        var pos = (y * w + x) * 4
+        let pos = (y * w + x) * 4
 
         res[0] = imgData.data[pos]
         res[1] = imgData.data[pos + 1]
@@ -378,9 +379,9 @@
        * imgData根据坐标修改
        */
       setXY (imgData, x, y, res) {
-        var w = imgData.width
+        let w = imgData.width
 
-        var pos = (y * w + x) * 4
+        let pos = (y * w + x) * 4
 
         imgData.data[pos] = res[0]
         imgData.data[pos + 1] = res[1]
@@ -389,7 +390,7 @@
       },
 
       inArray (son, arr) {
-        for (var i = 0; i < arr.length; i++) {
+        for (let i = 0; i < arr.length; i++) {
           if (arr[i] === son) {
             return true
           }
@@ -422,19 +423,38 @@
        */
       add () {
         this.dataArr.push(JSON.parse(JSON.stringify(this.inputData)))
+        this.inputData.name = ''
+        this.ready(this.dataArr)
+      },
+      /**
+       * 添加数据
+       */
+      backout () {
+        this.dataArr.splice(this.dataArr.length - 1, 1)
         this.ready(this.dataArr)
       },
       /**
        * 生成背景图
        */
       create () {
-//        this.canvasWidth = this.canvasWidth * this.ratio
-//        this.canvasHeight = this.canvasHeight * this.ratio
         this.ready(this.dataArr)
       },
-      mutilCreate () {
-        this.dataArr = JSON.parse(this.dataArrString)
+      /**
+       * 清空
+       */
+      clean () {
+        this.dataArr = []
         this.ready(this.dataArr)
+      },
+      multiCreate () {
+        let flag = true
+        try {
+          this.dataArr = JSON.parse(this.dataArrString)
+        } catch (err) {
+          flag = false
+          this.snackbar = true
+        }
+        flag && this.ready(this.dataArr)
       }
 
     }
@@ -456,5 +476,9 @@
   .btn-group {
     position: absolute;
     bottom: 0;
+  }
+
+  .textarea {
+    height: 200px;
   }
 </style>

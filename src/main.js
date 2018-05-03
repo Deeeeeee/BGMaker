@@ -17,6 +17,8 @@ import {
   VTextField,
   VSlider,
   VTabs,
+  VSnackbar,
+  VSwitch,
   transitions
 } from 'vuetify'
 import '../node_modules/vuetify/src/stylus/app.styl'
@@ -35,6 +37,8 @@ Vue.use(Vuetify, {
     VTextField,
     VSlider,
     VTabs,
+    VSnackbar,
+    VSwitch,
     transitions
   },
   theme: {
