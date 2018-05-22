@@ -13,28 +13,23 @@
           width="400"
         >
           <v-form ref="form" class="px-2 py-4" lazy-validation>
-            <v-text-field label="宽度" v-model="canvasWidth" type="number" required></v-text-field>
-            <v-text-field label="高度" v-model="canvasHeight" type="number" required></v-text-field>
+            <v-text-field label="宽度" v-model="canvasWidth" required></v-text-field>
+            <v-text-field label="高度" v-model="canvasHeight" required></v-text-field>
             <v-slider label="缩放" :min="1" :max="10" v-model="zoom"></v-slider>
-            <v-switch label="方向随机" v-model="isRandomDirection" color="success" value="success" hide-details></v-switch>
-            <!--<v-tabs v-model="active" color="cyan" dark slider-color="yellow">-->
-            <!--<v-tab ripple>手动导入</v-tab>-->
-            <!--<v-tab ripple>Json导入</v-tab>-->
-            <!--<v-tab-item>-->
-            <!--<v-text-field label="文本" v-model="inputData.name" required></v-text-field>-->
-            <!--<v-text-field label="字号" v-model="inputData.fontSize" required></v-text-field>-->
-            <!--<v-btn @click="add" color="info">添加</v-btn>-->
-            <!--<v-btn @click="backout" color="warning">撤销</v-btn>-->
-            <!--</v-tab-item>-->
-            <!--<v-tab-item>-->
-            <!--<v-text-field :multi-line="true" label="Json" v-model="dataArrString" required></v-text-field>-->
-            <!--<v-btn @click="multiCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>-->
-            <!--</v-tab-item>-->
-            <!--</v-tabs>-->
-            <v-text-field class="textarea" :multi-line="true" label="Json" v-model="dataArrString"
-                          :placeholder="JSON.stringify(this.dataArr)"
-                          required></v-text-field>
-            <v-btn @click="multiCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>
+            <v-tabs v-model="active" color="cyan" dark slider-color="yellow">
+              <v-tab ripple>手动导入</v-tab>
+              <v-tab ripple>Json导入</v-tab>
+              <v-tab-item>
+                <v-text-field label="文本" v-model="inputData.name" required></v-text-field>
+                <v-text-field label="字号" v-model="inputData.count" required></v-text-field>
+                <v-btn @click="add" color="info">添加</v-btn>
+                <v-btn @click="backout" color="warning">撤销</v-btn>
+              </v-tab-item>
+              <v-tab-item>
+                <v-text-field :multi-line="true" label="Json" v-model="dataArrString" required></v-text-field>
+                <v-btn @click="multiCreate" color="info" class="w-100" :disabled="!dataArrString">批量生成</v-btn>
+              </v-tab-item>
+            </v-tabs>
 
             <div class="btn-group">
               <v-btn @click="create" color="info">重新渲染</v-btn>
@@ -50,13 +45,6 @@
         <v-btn class="btn-setting" @click.stop="drawer=!drawer" fab dark small color="blue">
           <v-icon dark>settings</v-icon>
         </v-btn>
-        <v-snackbar
-          :top="true"
-          :timeout="2000"
-          color="error"
-          v-model="snackbar"
-        >Json格式有误，请参考示例
-        </v-snackbar>
       </v-layout>
     </v-slide-y-transition>
   </v-container>
@@ -68,7 +56,7 @@
       return {
         inputData: {
           name: '',
-          fontSize: 12
+          count: 12
         },
         active: '0',
         drawer: true,
@@ -76,18 +64,11 @@
         miniVariant: false,
         zoom: 5,
         canvas: null,
-        ctx: null,
+        ctx: null, // 花边
         canvasWidth: 1920,
         canvasHeight: 1080,
         ratio: 1,
-        snackbar: false,
-        isRandomDirection: false,
-        dataArr: [
-          {
-            'name': '下班打卡',
-            'fontSize': 40
-          }
-        ],
+        dataArr: [],
         dataArrString: '',
         finImgData: null, // 最终图片
         finImgMsg: null, // 存放是否已写信息
@@ -122,7 +103,7 @@
     components: {},
     watch: {},
     created () {
-//      this.ratio = window.devicePixelRatio || 1
+      this.ratio = window.devicePixelRatio || 1
 //      this.canvasWidth = this.canvasWidth * this.ratio
 //      this.canvasHeight = this.canvasHeight * this.ratio
     },
@@ -132,9 +113,11 @@
     methods: {
       ready: function () {
         this.canvas = document.getElementById('canvas')
+
         this.ctx = this.canvas.getContext('2d')
         this.finImgData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight)
         this.finImgMsg = []
+
         for (let i = 0; i < this.canvasWidth; i++) {
           this.finImgMsg[i] = []
           for (let j = 0; j < this.canvasHeight; j++) {
@@ -149,19 +132,19 @@
        */
       setFontSize: function () {
         this.dataArr.sort(function (x, y) {
-          if (Math.floor(x.fontSize) === Math.floor(y.fontSize)) {
+          if (Math.floor(x.count) === Math.floor(y.count)) {
             return 0
           }
-          if (Math.floor(x.fontSize) > Math.floor(y.fontSize)) {
+          if (Math.floor(x.count) > Math.floor(y.count)) {
             return -1
           } else {
             return 1
           }
         })
         this.dataArr.map((item, index) => {
-//          item.fontSize = item.fontSize * this.ratio
-          if (item.fontSize < 12) {
-            item.fontSize = 12
+//          item.count = item.count * this.ratio
+          if (item.count < 12) {
+            item.count = 12
           }
         })
       },
@@ -170,7 +153,7 @@
        */
       draw: function () {
         for (let i = 0; i < this.dataArr.length; i++) {
-          this.drawWord(this.dataArr[i].name, this.dataArr[i].fontSize)
+          this.drawWord(this.dataArr[i].name, this.dataArr[i].count)
         }
         this.ctx.putImageData(this.finImgData, 0, 0)
       },
@@ -186,9 +169,7 @@
         this.ctx.textBaseline = 'top'
         this.ctx.fillText(word, 0, 0)
         let wordImgData = this.ctx.getImageData(0, 0, w + 30, size + 30)
-        if (this.isRandomDirection) {
-          wordImgData = this.randomRotateImgData(wordImgData)
-        }
+        wordImgData = this.randomRotateImgData(wordImgData)
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
         // 初始化查找点
         let centerPoint = this.getCenterPoint()
@@ -248,16 +229,16 @@
        * 随机旋转
        */
       randomRotateImgData: function (imgData) {
-        let newImageData = this.ctx.createImageData(imgData.height, imgData.width)
-        if (this.random(9) > 6) {
-          for (let i = 0; i < imgData.height; i++) {
-            for (let j = 0; j < imgData.width; j++) {
-              let point = this.getXY(imgData, j, i)
-              this.setXY(newImageData, imgData.height - i - 1, j, point)
-            }
-          }
-          imgData = newImageData
-        }
+//        let newImageData = this.ctx.createImageData(imgData.height, imgData.width)
+//        if (this.random(9) > 6) {
+//          for (let i = 0; i < imgData.height; i++) {
+//            for (let j = 0; j < imgData.width; j++) {
+//              let point = this.getXY(imgData, j, i)
+//              this.setXY(newImageData, imgData.height - i - 1, j, point)
+//            }
+//          }
+//          imgData = newImageData
+//        }
 
         return imgData
       },
@@ -315,7 +296,9 @@
               if (this.round !== 1) {
                 let quadrant = Math.floor((this.nowChoose) / (this.round - 1)) // 第几象限
                 let distance = (this.nowChoose + 1) % this.round// 象限的偏移
+
                 // log(quadrant)
+
                 switch (quadrant) {
                   case 0 :
                     pos.x = w / 2 * distance
@@ -357,6 +340,7 @@
         c.randPoint()
         return c
       },
+
       random (num) {
         return Math.floor(Math.random() * (num + 1))
       },
@@ -447,14 +431,8 @@
         this.ready(this.dataArr)
       },
       multiCreate () {
-        let flag = true
-        try {
-          this.dataArr = JSON.parse(this.dataArrString)
-        } catch (err) {
-          flag = false
-          this.snackbar = true
-        }
-        flag && this.ready(this.dataArr)
+        this.dataArr = JSON.parse(this.dataArrString)
+        this.ready(this.dataArr)
       }
 
     }
@@ -476,9 +454,5 @@
   .btn-group {
     position: absolute;
     bottom: 0;
-  }
-
-  .textarea {
-    height: 200px;
   }
 </style>
